@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV POPULER INDONESIA - GRATIS - TANPA YOUTUBE</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',sans-serif}
+body{background:#0f0f0f;color:#fff}
+header{background:#111;padding:15px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+header h1{font-size:1.3rem} header h1 span{color:#ff0000}
+.search{flex:1;max-width:450px;display:flex;gap:8px}
+.search input{flex:1;padding:10px 15px;border:none;border-radius:20px;background:#272727;color:#fff;outline:none}
+.search button{padding:10px 18px;border:none;border-radius:20px;background:#ff0000;color:#fff;font-weight:bold;cursor:pointer}
+.main{display:flex;gap:15px;padding:15px;max-width:1400px;margin:0 auto;flex-wrap:wrap}
+.player-wrap{flex:1;min-width:300px}
+.player{width:100%;aspect-ratio:16/9;background:#000;border-radius:15px;overflow:hidden;position:relative}
+.player video{width:100%;height:100%;border:none;background:#000}
+.status{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.85);padding:7px 13px;border-radius:20px;font-size:.85rem;z-index:2}
+.info{background:#1f1f1f;padding:15px;border-radius:12px;margin-top:12px}
+.info-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.live{background:#ff0000;padding:4px 10px;border-radius:20px;font-size:.8rem;font-weight:bold}
+.btn{padding:8px 15px;background:#272727;color:#fff;border:none;border-radius:20px;cursor:pointer}
+.btn-red{background:#ff0000}
+.btn-active{background:#ff0000!important}
+.volume-box{background:#272727;padding:12px 15px;border-radius:12px;margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.volume-box input[type=range]{flex:1;min-width:150px;accent-color:#ff0000}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 5px}
+.filter-btn{padding:8px 15px;background:#272727;color:#fff;border:none;border-radius:20px;cursor:pointer;font-size:.85rem}
+.filter-btn.active{background:#ff0000}
+.list{width:360px;max-height:85vh;overflow-y:auto;background:#1a1a1a;border-radius:15px;padding:10px}
+.ch-item{display:flex;gap:10px;align-items:center;padding:10px;border-radius:10px;cursor:pointer;margin-bottom:5px;background:#222}
+.ch-item:hover,.ch-item.active{background:#333;border-left:4px solid #ff0000}
+.ch-item img{width:52px;height:52px;object-fit:cover;border-radius:8px;background:#444;flex-shrink:0}
+.ch-item b{font-size:.95rem;display:block}
+.ch-item small{color:#aaa;font-size:.8rem}
+.badge{margin-left:auto;font-size:.65rem;padding:3px 8px;border-radius:10px;background:#10b981;color:#fff;white-space:nowrap}
+@media(max-width:900px){.list{width:100%;max-height:none}}
+</style>
+</head>
+<body>
+<header>
+<h1>📺 <span>TV</span> POPULER INDONESIA</h1>
+<div class="search"><input type="text" id="searchInput" placeholder="Cari MNCTV, GTV, RCTI..." oninput="renderList()"><button onclick="renderList()">Cari</button></div>
+</header>
+<div class="main">
+<div class="player-wrap">
+<div class="player" id="playerBox">
+<video id="video" controls autoplay playsinline preload="auto"></video>
+<div class="status" id="status">⏳ Memuat...</div>
+</div>
+<div class="info">
+<div class="info-top">
+<div><h2 id="nowTitle">📺 Memuat...</h2><p id="nowDesc" style="color:#aaa;font-size:.9rem"></p></div>
+<div style="display:flex;gap:8px;align-items:center"><span class="live">● LIVE</span><button class="btn" onclick="fullscreen()">⛶ Fullscreen</button></div>
+</div>
+<div class="volume-box">
+<span style="font-size:1.2rem">🔊</span><b>Volume:</b>
+<input type="range" id="volSlider" min="0" max="200" value="100" oninput="setVolume(this.value)">
+<span id="volLabel" style="font-weight:bold;min-width:45px">100%</span>
+<button class="btn" id="btnBoost" onclick="toggleBoost()">🚀 BOOST SUARA 200%</button>
+<p style="color:#aaa;font-size:.8rem;width:100%">✅ TANPA YOUTUBE - Semua channel pake HLS, langsung jalan di web. Kalo suara kecil, klik BOOST.</p>
+</div>
+</div>
+<div class="filters">
+<button class="filter-btn active" onclick="setKategori('Semua',this)">Semua</button>
+<button class="filter-btn" onclick="setKategori('Populer',this)">🔥 Populer</button>
+<button class="filter-btn" onclick="setKategori('Hiburan',this)">Hiburan</button>
+<button class="filter-btn" onclick="setKategori('Berita',this)">Berita</button>
+<button class="filter-btn" onclick="setKategori('Anak',this)">Anak</button>
+<button class="filter-btn" onclick="setKategori('Musik',this)">Musik</button>
+</div>
+<p style="color:#aaa;font-size:.85rem;padding:5px">✅ Semua HLS, tanpa YouTube, tanpa Error 153!</p>
+</div>
+<div class="list"><h3 style="padding:10px 5px">📡 Channel Populer (<span id="count">0</span>)</h3><div id="channelList"></div></div>
+</div>
+<script>
+let hls=null,kategoriAktif="Semua",aktif=null,boostOn=false,audioCtx=null,gainNode=null,sourceNode=null,volumeVal=100;
+const channels=[
+{ nama:"TRANS 7 - LIVE", kategori:"Hiburan", desc:"Lapor Pak, OVJ, MotoGP", img:"https://via.placeholder.com/100x100/0891b2/white?text=T7", urls:["https://cdn-livetv2.metube.id/hls/trans7.m3u8"] },
+{ nama:"TRANS TV - LIVE", kategori:"Hiburan", desc:"Brownis, Insert, Film", img:"https://via.placeholder.com/100x100/0ea5e9/white?text=TRANS", urls:["https://cdn-livetv2.metube.id/hls/transtv_480/index.m3u8"] },
+{ nama:"MNCTV - LIVE", kategori:"Populer", desc:"Upin Ipin, Sinetron", img:"https://via.placeholder.com/100x100/e11d48/white?text=MNC", urls:["https://cdn-livetv2.metube.id/hls/mnctv_480/index.m3u8"] },
+{ nama:"GTV - LIVE", kategori:"Populer", desc:"SpongeBob, Kartun", img:"https://via.placeholder.com/100x100/7c3aed/white?text=GTV", urls:["https://cdn-livetv2.metube.id/hls/globaltv_480/index.m3u8"] },
+{ nama:"RCTI - LIVE", kategori:"Populer", desc:"Sinetron, Hiburan", img:"https://via.placeholder.com/100x100/dc2626/white?text=RCTI", urls:["https://cdn-livetv5.metube.id/hls/rcti_480/index.m3u8"] },
+{ nama:"SCTV - LIVE", kategori:"Populer", desc:"Sinetron, FTV", img:"https://via.placeholder.com/100x100/2563eb/white?text=SCTV", urls:["https://cdn-livetv2.metube.id/hls/sctv_480/index.m3u8"] },
+{ nama:"INDOSIAR - LIVE", kategori:"Populer", desc:"Dangdut, D'Academy", img:"https://via.placeholder.com/100x100/f97316/white?text=INDOSIAR", urls:["https://cdn-livetv2.metube.id/hls/indosiar.m3u8"] },
+{ nama:"ANTV - LIVE", kategori:"Hiburan", desc:"Film India, Pesbukers", img:"https://via.placeholder.com/100x100/f59e0b/white?text=ANTV", urls:["https://cdn-livetv2.metube.id/hls/antv_480/index.m3u8"] },
+{ nama:"NET TV - LIVE", kategori:"Hiburan", desc:"Talkshow, Hiburan", img:"https://via.placeholder.com/100x100/111827/white?text=NET", urls:["https://cdn-livetv2.metube.id/hls/nettv_480/index.m3u8"] },
+{ nama:"RTV - LIVE", kategori:"Hiburan", desc:"Hiburan Keluarga", img:"https://via.placeholder.com/100x100/16a34a/white?text=RTV", urls:["https://cdn-livetv2.metube.id/hls/rtv_480/index.m3u8"] },
+{ nama:"METRO TV", kategori:"Berita", desc:"Berita Live - HLS", img:"https://via.placeholder.com/100x100/1e40af/white?text=METRO", urls:["https://cdn-livetv2.metube.id/hls/metrotv.m3u8"] },
+{ nama:"KOMPAS TV", kategori:"Berita", desc:"Berita Live - HLS", img:"https://via.placeholder.com/100x100/ef4444/white?text=KOMPAS", urls:["https://cdn-livetv2.metube.id/hls/kompastv.m3u8"] },
+{ nama:"TV ONE", kategori:"Berita", desc:"Kabar Petang - HLS", img:"https://via.placeholder.com/100x100/b91c1c/white?text=TVONE", urls:["https://cdn-livetv2.metube.id/hls/tvone_480/index.m3u8"] },
+{ nama:"iNEWS", kategori:"Berita", desc:"Berita - HLS", img:"https://via.placeholder.com/100x100/dc2626/white?text=iNEWS", urls:["https://cdn-livetv2.metube.id/hls/inewstv_480/index.m3u8"] },
+{ nama:"TVRI NASIONAL", kategori:"Berita", desc:"TVRI - HLS", img:"https://via.placeholder.com/100x100/2563eb/white?text=TVRI", urls:["https://ott.tvri.co.id/Content/HLS/Live/Channel(TVRInasional)/Stream(04)/index.m3u8"] },
+{ nama:"Al Jazeera English", kategori:"Berita", desc:"Berita Dunia - HLS", img:"https://via.placeholder.com/100x100/f97316/white?text=AJ", urls:["https://live-hls-web-aje.getaj.net/AJE/index.m3u8"] },
+{ nama:"DW News", kategori:"Berita", desc:"Berita Eropa - HLS", img:"https://via.placeholder.com/100x100/2563eb/white?text=DW", urls:["https://dwamdstream104.akamaized.net/hls/live/2015530-dwstream104/index.m3u8"] },
+{ nama:"NASA TV", kategori:"Hiburan", desc:"Live ISS - HLS", img:"https://via.placeholder.com/100x100/111827/white?text=NASA", urls:["https://nasa-nasatv-public.akamaihd.net/hls/live/201972-uas-nasatv-public/master.m3u8"] },
+];
+function setKategori(k,btn){kategoriAktif=k;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderList();}
+function setStatus(t){document.getElementById('status').textContent=t;}
+function setVolume(v){volumeVal=parseInt(v);document.getElementById('volLabel').textContent=v+"%";const video=document.getElementById('video');video.volume=Math.min(1,volumeVal/100);if(gainNode)gainNode.gain.value=volumeVal/100;}
+function toggleBoost(){
+boostOn=!boostOn;const btn=document.getElementById('btnBoost');
+if(boostOn){document.getElementById('volSlider').value=200;setVolume(200);btn.classList.add('btn-active');btn.textContent="🔊 BOOST AKTIF 200%";setupAudioBoost();}
+else{document.getElementById('volSlider').value=100;setVolume(100);btn.classList.remove('btn-active');btn.textContent="🚀 BOOST SUARA 200%";}
+}
+function setupAudioBoost(){
+try{const video=document.getElementById('video');if(!audioCtx){audioCtx=new (window.AudioContext||window.webkitAudioContext)();gainNode=audioCtx.createGain();sourceNode=audioCtx.createMediaElementSource(video);sourceNode.connect(gainNode);gainNode.connect(audioCtx.destination);}if(audioCtx.state==="suspended")audioCtx.resume();gainNode.gain.value=volumeVal/100;}catch(e){}
+}
+function playChannel(ch){
+aktif=ch;document.getElementById('nowTitle').textContent="📺 "+ch.nama;document.getElementById('nowDesc').textContent=ch.desc+" • "+ch.kategori;
+const video=document.getElementById('video');
+if(hls){hls.destroy();hls=null;}
+video.pause();
+video.style.display="block";
+setStatus("⏳ Memuat "+ch.nama+"...");
+if(Hls.isSupported()){hls=new Hls({maxBufferLength:12});hls.loadSource(ch.urls[0]);hls.attachMedia(video);hls.on(Hls.Events.MANIFEST_PARSED,()=>{video.play().catch(()=>{});video.volume=volumeVal/100;setStatus("● LIVE - "+ch.nama+" • Volume "+volumeVal+"%");});hls.on(Hls.Events.ERROR,(e,data)=>{if(data.fatal)setStatus("❌ Link gangguan, coba channel lain");});}
+else if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=ch.urls[0];video.play().catch(()=>{});setStatus("● LIVE - "+ch.nama);}
+renderList();window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderList(){
+const q=document.getElementById('searchInput').value.toLowerCase();const list=document.getElementById('channelList');list.innerHTML="";
+const filtered=channels.filter(c=>(kategoriAktif==="Semua"||c.kategori===kategoriAktif)&&c.nama.toLowerCase().includes(q));
+document.getElementById('count').textContent=filtered.length;
+filtered.forEach(c=>{
+const div=document.createElement('div');div.className='ch-item'+(aktif&&c.nama===aktif.nama?' active':'');
+div.innerHTML=`<img src="${c.img}"><div><b>${c.nama}</b><small>${c.desc}</small></div><span class="badge">HLS LIVE</span>`;
+div.onclick=()=>playChannel(c);list.appendChild(div);
+});
+}
+function fullscreen(){const box=document.getElementById('playerBox');if(box.requestFullscreen)box.requestFullscreen();}
+renderList();playChannel(channels[0]);
+</script>
+</body>
+</html>
